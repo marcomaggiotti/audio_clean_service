@@ -163,3 +163,24 @@ def test_interrupted_jobs_resume_on_restart(settings, claude):
     with TestClient(create_app(settings, Components(claude_client=claude))) as c:
         assert wait_for(c, job_id)["status"] == "completed"
         assert c.get(f"/jobs/{'s' * 32}").json()["status"] == "failed"
+
+
+def test_healthz_is_dependency_free(client, monkeypatch):
+    assert client.get("/healthz").json() == {"status": "ok"}
+    monkeypatch.setattr("app.main.shutil.which", lambda _: None)
+    assert client.get("/healthz").status_code == 503
+
+
+def test_render_blueprint_matches_the_settings():
+    """Every variable render.yaml sets is one the service reads, and the health check path exists."""
+    from pathlib import Path
+
+    import yaml
+
+    from app.config import Settings
+
+    root = Path(__file__).parent.parent
+    service = yaml.safe_load((root / "render.yaml").read_text())["services"][0]
+    assert service["healthCheckPath"] == "/healthz" and service["disk"]["mountPath"] == "/data"
+    read = {name.upper() for name in Settings.model_fields} | {"ANTHROPIC_API_KEY"}
+    assert {var["key"] for var in service["envVars"]} <= read
