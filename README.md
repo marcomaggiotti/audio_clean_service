@@ -141,9 +141,11 @@ docker run -p 10000:10000 -v $PWD/data:/data -e ANTHROPIC_API_KEY audio-clean
 a `/healthz` health check and every setting as an environment variable.
 
 1. In Render: **New → Blueprint**, pick this repository and the branch that contains `render.yaml`.
-2. Render asks for `ANTHROPIC_API_KEY` (the only `sync: false` secret). It's optional: leave it empty
-   and jobs use the rule-based agent; add it later in the **Environment** tab and `auto` switches to
-   Claude on the next restart.
+2. Render asks for `ANTHROPIC_API_KEY`. **It's optional**: leave it blank and every job uses the
+   rule-based agent. Add it later in the **Environment** tab and `auto` switches to Claude on the
+   next restart; remove it and the service goes back to the rule-based agent. A blank, missing or
+   invalid key never fails a job: without a key the service doesn't call Claude at all, and if
+   Claude errors the rule-based agent decides instead.
 3. Apply. Render builds the `Dockerfile` (Python 3.12 + ffmpeg) and starts it on port 10000.
 4. Copy `API_TOKEN`, which Render generates, from the service's **Environment** tab, and send it as
    `X-API-Key: <token>` (or `Authorization: Bearer <token>`):
@@ -183,7 +185,7 @@ needs another port.
 | `MAX_UPLOAD_MB` / `MAX_AUDIO_SECONDS` | `100` / `7200` | Upload limits |
 | `WORKER_CONCURRENCY` / `MAX_QUEUE_SIZE` | `1` / `20` | Parallel jobs; uploads get `503` when the queue is full |
 | `CLEANING_AGENT` | `auto` | `auto`, `heuristic` or `claude`: the default for jobs that don't choose |
-| `ANTHROPIC_API_KEY` | – | Enables the Claude agent |
+| `ANTHROPIC_API_KEY` | – | Optional. Enables the Claude agent; without it every job uses the rule-based agent, even with `CLEANING_AGENT=claude` |
 | `CLAUDE_MODEL` | `claude-opus-5-5` | Model for the Claude agent |
 | `CLAUDE_EFFORT` | `medium` | `low` … `max`: how hard Claude thinks per turn |
 | `AGENT_MAX_TRIALS` | `6` | Plans Claude may try on the preview |

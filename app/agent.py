@@ -182,7 +182,9 @@ def _plan_to_tool(plan: CleaningPlan) -> dict:
 
 
 def claude_credentials_configured() -> bool:
-    return bool(os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN"))
+    """Whether an Anthropic key is set. It's optional: blank (as a skipped Render prompt may leave it)
+    or missing means no Claude, and the rule-based agent decides."""
+    return any((os.getenv(name) or "").strip() for name in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"))
 
 
 class ClaudeAgent:
@@ -236,6 +238,8 @@ class ClaudeAgent:
                 raise AgentError(f"Claude API error {e.status_code}: {e.message}") from e
             except anthropic.APIConnectionError as e:
                 raise AgentError(f"Could not reach the Claude API: {e}") from e
+            except TypeError as e:  # the SDK's "Could not resolve authentication method": no key
+                raise AgentError(f"Claude API request could not be made: {e}") from e
 
             if response.stop_reason == "refusal":
                 raise AgentError("Claude declined the request")
