@@ -7,8 +7,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY main.py .
-# Uploads, cleaned audio and the job list live under /data: mount a volume there to keep them.
+# Uploads, cleaned audio and the job list live under /data (a Render persistent disk in render.yaml;
+# mount a volume there elsewhere). 10000 is Render's default port; PORT, when set, overrides it.
 ENV DATA_DIR=/data \
-    PORT=8000
-EXPOSE 8000
+    PORT=10000
+EXPOSE 10000
 CMD ["python", "main.py"]

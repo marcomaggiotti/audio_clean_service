@@ -177,6 +177,13 @@ def create_app(settings: Settings | None = None, components: Components | None =
                               claude_model=settings.claude_model, queue_depth=pipeline.queue.qsize(),
                               active_jobs=pipeline.active)
 
+    @app.get("/healthz", include_in_schema=False)
+    async def healthz():
+        """Liveness for the platform health check: 503 if ffmpeg is missing. Never calls the Claude API."""
+        if not shutil.which("ffmpeg"):
+            return JSONResponse({"status": "unhealthy", "detail": "ffmpeg is not installed"}, status_code=503)
+        return {"status": "ok"}
+
     @app.get("/strategies")
     async def strategies():
         """What the agents can do and how they compare strategies."""
