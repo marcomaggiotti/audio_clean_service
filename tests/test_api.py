@@ -80,6 +80,13 @@ def test_auto_uses_claude_when_available(settings, tmp_path, monkeypatch):
         health = c.get("/health").json()
         assert health["default_agent"] == "heuristic" and not health["claude_available"]
         assert upload(c, agent="claude").status_code == 422  # no credentials
+    settings.cleaning_agent = "claude"  # forced, but there is no key: still works, rule-based
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "   ")  # blank, as a skipped Render prompt may leave it
+    with TestClient(create_app(settings, Components())) as c:
+        assert c.get("/health").json()["default_agent"] == "heuristic"
+        job = wait_for(c, upload(c).json()["id"])
+        assert job["status"] == "completed" and job["decision"]["agent"] == "heuristic"
+    settings.cleaning_agent = "auto"
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
     with TestClient(create_app(settings, Components())) as c:
         assert c.get("/health").json()["default_agent"] == "claude"

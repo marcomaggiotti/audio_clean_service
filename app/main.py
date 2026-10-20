@@ -77,10 +77,12 @@ class Agents:
         return self.claude_client is not None or claude_credentials_configured()
 
     def resolve(self, requested: str) -> str:
+        """The agent that will actually run. Without an Anthropic key that is always the rule-based one,
+        even if CLEANING_AGENT (or a job queued while a key was set) asked for Claude."""
         name = self.settings.cleaning_agent if requested == "auto" else requested
-        if name == "auto":
-            name = "claude" if self.claude_available else "heuristic"
-        return name
+        if name in ("auto", "claude") and not self.claude_available:
+            return "heuristic"
+        return "claude" if name == "auto" else name
 
     def __call__(self, requested: str) -> CleaningAgent:
         if self.resolve(requested) != "claude":
@@ -104,6 +106,8 @@ def create_app(settings: Settings | None = None, components: Components | None =
             logger.error("ffmpeg is not installed: every job will fail")
         if settings.cleaning_agent not in ("auto", "heuristic", "claude"):
             raise RuntimeError(f"CLEANING_AGENT must be auto, heuristic or claude, not {settings.cleaning_agent!r}")
+        if settings.cleaning_agent == "claude" and not agents.claude_available:
+            logger.warning("CLEANING_AGENT=claude but ANTHROPIC_API_KEY is not set: using the rule-based agent")
         pipeline = CleaningPipeline(
             JobRepository(data_dir / "jobs.json"), data_dir, agents,
             preview_seconds=settings.preview_seconds, analysis_max_seconds=settings.analysis_max_seconds,

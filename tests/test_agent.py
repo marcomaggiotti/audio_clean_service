@@ -124,3 +124,15 @@ def test_claude_must_submit_within_the_turn_limit(wav, tmp_path):
     fake = FakeClaude([[("text", "thinking aloud")]] * 3)
     with pytest.raises(AgentError, match="No plan submitted"):
         decide(ClaudeAgent(client=fake, max_turns=3), wav(noise=0.03), Goal.podcast, tmp_path)
+
+
+def test_missing_credentials_become_an_agent_error(wav, tmp_path):
+    class NoKey:
+        class beta:
+            class messages:
+                @staticmethod
+                def create(**_):
+                    raise TypeError("Could not resolve authentication method")
+
+    with pytest.raises(AgentError, match="could not be made"):
+        decide(ClaudeAgent(client=NoKey()), wav(noise=0.03), Goal.podcast, tmp_path)
