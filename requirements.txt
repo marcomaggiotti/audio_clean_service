@@ -1,0 +1,7 @@
+fastapi==0.146.0
+uvicorn[standard]==0.53.0
+python-multipart==0.0.32
+pydantic==2.13.5
+numpy==2.5.3
+pillow==12.3.0  # spectrogram PNGs
+anthropic==1.15.0  # Claude cleaning agent (optional at runtime: needs ANTHROPIC_API_KEY)
